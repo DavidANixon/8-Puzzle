@@ -1,14 +1,14 @@
+import javax.lang.model.type.ArrayType;
 import java.text.StringCharacterIterator;
 import java.util.Arrays;
 import java.util.Objects;
 
 public class PuzzleSolver {
 
-    public static final int GOAL_STATE[][] = {{'b', 2, 3}, {4, 5, 6}, {7, 8, 9}};
+    public static final int GOAL_STATE[][] = {{0, 2, 3}, {4, 5, 6}, {7, 8, 9}};
     private int currentState[][] = new int[3][3];
     private int currentBlanki = 0;
     private int currentBlankj = 0;
-
 
     public void setState(String inputState) {
         Objects.requireNonNull(inputState);
@@ -29,7 +29,6 @@ public class PuzzleSolver {
         }
     }
 
-
     public void move(String direction) {
         switch (direction) {
             case ("up"):
@@ -39,10 +38,10 @@ public class PuzzleSolver {
                 moveDown();
                 break;
             case ("left"):
-                moveleft();
+                moveLeft();
                 break;
             case ("right"):
-                moveright();
+                moveRight();
                 break;
             default: throw new IllegalArgumentException("the given direction does not match " +
                     "'up', 'down', 'left', or 'right");
@@ -52,20 +51,69 @@ public class PuzzleSolver {
     public void printState() {
         System.out.println("Current state of the puzzle is: \n" + Arrays.deepToString(currentState));
     }
-    
+
+    public void randomizeState(int numberOfMoves) {
+        while (numberOfMoves > 0) {
+            makeRandomMove();
+            numberOfMoves--;
+            printState();
+        }
+    }
+
+    public void solveAStar(String heuristicType) {
+        switch (heuristicType) {
+            case ("H1Heuristic"):
+                getH1Heuristic();
+        }
+
+    }
+
+    //////////////////
+    /*Helper Methods*/
+    //////////////////
+    private int getH1Heuristic() {
+        int tilesOffGoal = 0;
+
+        for (int i = 0; i < 3; i++) {
+            for (int j = 0; j < 3; j++) {
+                if (currentState[i][j] != GOAL_STATE[i][j])
+                    tilesOffGoal++;
+            }
+        }
+
+        return tilesOffGoal;
+    }
+
+    private void makeRandomMove() {
+        Double moveType = Math.ceil(Math.random() * 4);
+
+        System.out.println(moveType);
+        if (moveType == 1)
+            move("up");
+        else  if (moveType == 2)
+            move("down");
+        else if (moveType == 3)
+            move("left");
+        else
+            move("right");
+    }
+
     private void moveUp() {
         if (currentBlanki != 0)
             switchTiles(currentBlanki, currentBlankj, currentBlanki-1, currentBlankj);
     }
+
     private void moveDown() {
         if (currentBlanki != 2)
             switchTiles(currentBlanki, currentBlankj, currentBlanki+1, currentBlankj);
     }
-    private void moveleft() {
+
+    private void moveLeft() {
         if (currentBlankj != 0)
             switchTiles(currentBlanki, currentBlankj, currentBlanki, currentBlankj-1);
     }
-    private void moveright() {
+
+    private void moveRight() {
         if (currentBlankj != 2)
             switchTiles(currentBlanki, currentBlankj, currentBlanki, currentBlankj+1);
     }
@@ -79,38 +127,27 @@ public class PuzzleSolver {
     }
 
     private void validateInputState(String state) {
-
-
         if (state.length() == 9
-                && state.contains("b")
-                && state.contains("1")
-                && state.contains("2")
-                && state.contains("3")
-                && state.contains("4")
-                && state.contains("5")
-                && state.contains("6")
-                && state.contains("7")
-                && state.contains("8")
-        ) {
+                && containsAll(state, "b", "1", "2", "3", "4", "5", "6", "7", "8")) {
             // no action is required
         } else
             throw new IllegalArgumentException("Given state does not match the required format");
     }
 
+    private boolean containsAll(String state, String... toVerify) {
+        for (CharSequence tile: toVerify) {
+            if (!state.contains(tile))
+                return false;
+        }
+        return true;
+    }
+
+    // Main Method
+
     public static void main(String[] args) {
         PuzzleSolver puzzleSolver = new PuzzleSolver();
-        puzzleSolver.setState("b12 345 678");
-        puzzleSolver.printState();
-        puzzleSolver.move("down");
-        puzzleSolver.printState();
-        puzzleSolver.move("down");
-        puzzleSolver.printState();
-        puzzleSolver.move("up");
-        puzzleSolver.printState();
-        puzzleSolver.move("left");
-        puzzleSolver.printState();
-        puzzleSolver.move("right");
-        puzzleSolver.printState();
+        puzzleSolver.setState("b12 354 678");
+        System.out.print(puzzleSolver.getH1Heuristic());
     }
 }
 
