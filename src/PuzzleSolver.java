@@ -52,8 +52,7 @@ public class PuzzleSolver {
     public void printState() {
         System.out.println("Current state of the puzzle is: \n" + Arrays.deepToString(currentState));
     }
-
-
+    
     private void moveUp() {
         if (currentBlanki != 0)
             switchTiles(currentBlanki, currentBlankj, currentBlanki-1, currentBlankj);
@@ -70,7 +69,6 @@ public class PuzzleSolver {
         if (currentBlankj != 2)
             switchTiles(currentBlanki, currentBlankj, currentBlanki, currentBlankj+1);
     }
-
 
     private void switchTiles(int old_i, int old_j, int new_i, int new_j) {
         int tempHolder = currentState[old_i][old_j];
