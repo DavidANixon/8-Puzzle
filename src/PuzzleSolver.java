@@ -1,7 +1,5 @@
 
-import javax.lang.model.element.Element;
 import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.text.StringCharacterIterator;
 import java.util.*;
@@ -80,6 +78,10 @@ public class PuzzleSolver {
         int iterations = 1;
         while (!Arrays.deepEquals(currentState.getRepresentation(), GOAL_STATE)) {
 
+            checkMaxNodes(iterations);
+
+            Objects.requireNonNull(currentNode);
+            Objects.requireNonNull(currentState);
             currentNode = priorityQueue.poll();
             currentState = currentNode.getState();
             iterations++;
@@ -90,7 +92,7 @@ public class PuzzleSolver {
             Node right = exploreCurrentNode(currentNode, "right", heuristicType);
 
 
-            for (Node node : (new ArrayList<Node>(Arrays.asList(up, down, left, right)))) {
+            for (Node node : (new ArrayList<>(Arrays.asList(up, down, left, right)))) {
                 if (!Arrays.deepEquals(currentNode.getState().getRepresentation(),
                         node.getState().getRepresentation())) {
                     priorityQueue.add(node);
@@ -101,9 +103,47 @@ public class PuzzleSolver {
         displayResults(currentNode, stack, iterations);
     }
 
+
+    public void solveBeamSearch(int k) {
+        PriorityQueue<Node> priorityQueue = new PriorityQueue<>();
+        Stack<Node> stack = new Stack<>();
+
+        Node currentNode = new Node(currentState, null, "none", 0);
+        currentNode.setHeuristicCost(getHeuristic("h1", currentState));
+        priorityQueue.add(currentNode);
+
+        int iterations = 1;
+        while (!Arrays.deepEquals(currentState.getRepresentation(), GOAL_STATE)) {
+
+            checkMaxNodes(iterations);
+
+            Objects.requireNonNull(currentNode);
+            Objects.requireNonNull(currentState);
+            currentNode = priorityQueue.poll();
+            currentState = currentNode.getState();
+            iterations++;
+
+            Node up = exploreCurrentNode(currentNode, "up", "h1");
+            Node down = exploreCurrentNode(currentNode, "down", "h1");
+            Node left = exploreCurrentNode(currentNode, "left", "h1");
+            Node right = exploreCurrentNode(currentNode, "right", "h1");
+
+
+            for (Node node : (new ArrayList<>(Arrays.asList(up, down, left, right)))) {
+                if (!Arrays.deepEquals(currentNode.getState().getRepresentation(),
+                        node.getState().getRepresentation())) {
+                    priorityQueue.add(node);
+                }
+            }
+
+            priorityQueue = reduceQueueToKBest(priorityQueue, k);
+        }
+        displayResults(currentNode, stack, iterations);
+    }
+
     private void displayResults(Node currentNode, Stack<Node> stack, int iterations) {
         Node stackNode = currentNode;
-        ArrayList movePrinter = new ArrayList();
+        ArrayList<String> movePrinter = new ArrayList<>();
         while (stackNode.getPreviousNode() != null) {
             stack.add(stackNode);
             stackNode = stackNode.getPreviousNode();
@@ -121,6 +161,21 @@ public class PuzzleSolver {
         System.out.println(movePrinter.toString());
     }
 
+    private PriorityQueue reduceQueueToKBest(PriorityQueue<Node> priorityQueue, int k) {
+        if (priorityQueue.size() > k) {
+            PriorityQueue<Node> reducedQueue = new PriorityQueue<>();
+            for (int i = 0; i < k; i++) {
+                reducedQueue.add(priorityQueue.poll());
+            }
+            priorityQueue.clear();
+
+            for (int i = 0; i < k; i++) {
+                priorityQueue.add(reducedQueue.poll());
+            }
+        }
+        return priorityQueue;
+    }
+
     private Node exploreCurrentNode(Node currentNode, String direction, String heuristicType) {
         State newState = move(direction, copyState(currentNode.getState()));
         Node newNode = new Node(newState, currentNode,
@@ -133,10 +188,10 @@ public class PuzzleSolver {
     /*Helper Methods*/
     //////////////////
     private int getHeuristic(String heuristicType, State state) {
-        if (heuristicType.equals("H1"))
+        if (heuristicType.equals("h1"))
             return getH1Heuristic(state);
 
-        else if (heuristicType.equals("H2"))
+        else if (heuristicType.equals("h2"))
             return getH2Heuristic(state);
 
         else throw new IllegalArgumentException("only H1 and H2 heuristic types are supported");
@@ -250,14 +305,14 @@ public class PuzzleSolver {
         return true;
     }
 
-    private void checkMaxNodes(int iterator) {
-        if (iterator > maxNodes)
+    private void checkMaxNodes(int iterations) {
+        if (iterations > maxNodes)
             throw new UnsupportedOperationException("The number of nodes has exceeded " +
                     "the maximum allowable number of nodes");
     }
 
     // Main Method
-    public static void main(String[] args) throws IOException {
+    public static void main(String[] args) {
         PuzzleSolver puzzleSolver = new PuzzleSolver();
 
         try {
@@ -273,20 +328,29 @@ public class PuzzleSolver {
                 switch (commands[0]) {
                     case ("setState"):
                         puzzleSolver.setState(commands[1] + " " + commands[2] + " " + commands[3]);
+                        puzzleSolver.printState();
+                        break;
                     case ("randomizeState"):
                         puzzleSolver.randomizeState(Integer.parseInt(commands[1]), puzzleSolver.currentState);
+                        puzzleSolver.printState();
+                        break;
                     case ("printState"):
                         puzzleSolver.printState();
+                        break;
                     case ("move"):
                         puzzleSolver.move(commands[1], puzzleSolver.currentState);
+                        puzzleSolver.printState();
+                        break;
                     case ("solve"):
                         if (commands[1].equals("A-star"))
                             puzzleSolver.solveAStar(commands[2]);
                         else if (commands[1].equals("beam")) {
-                            //solve k beam;
+                            puzzleSolver.solveBeamSearch(Integer.parseInt(commands[2]));
                         }
+                        break;
                     case ("maxNodes"):
                         puzzleSolver.maxNodes(Integer.parseInt(commands[1]));
+                        break;
                 }
             }
 
@@ -296,18 +360,4 @@ public class PuzzleSolver {
     }
 }
 
-//        PuzzleSolver puzzleSolver = new PuzzleSolver();
-//        puzzleSolver.setState("b12 345 678");
-//        System.out.println("Start: ");
-//        puzzleSolver.randomizeState(10, puzzleSolver.currentState);
-//        puzzleSolver.printState();
-//        puzzleSolver.solveAStar("H1");
-//        System.out.println("");
-//
-//        puzzleSolver = new PuzzleSolver();
-//        puzzleSolver.setState("b12 345 678");
-//        System.out.println("Start: ");
-//        puzzleSolver.randomizeState(10, puzzleSolver.currentState);
-//        puzzleSolver.printState();
-//        puzzleSolver.solveAStar("H2");
 
