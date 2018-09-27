@@ -1,14 +1,12 @@
-import javax.lang.model.type.ArrayType;
+
+import javax.lang.model.element.Element;
 import java.text.StringCharacterIterator;
-import java.util.Arrays;
-import java.util.Objects;
+import java.util.*;
 
 public class PuzzleSolver {
 
-    public static final int GOAL_STATE[][] = {{0, 2, 3}, {4, 5, 6}, {7, 8, 9}};
-    private int currentState[][] = new int[3][3];
-    private int currentBlanki = 0;
-    private int currentBlankj = 0;
+    public static final int GOAL_STATE[][] = {{0, 1, 2}, {3, 4, 5}, {6, 7, 8}};
+    private State currentState = new State(new int[0][0]);
 
     public void setState(String inputState) {
         Objects.requireNonNull(inputState);
@@ -16,67 +14,143 @@ public class PuzzleSolver {
         validateInputState(state);
         StringCharacterIterator stateIterator = new StringCharacterIterator(state);
 
+        int[][] stateBuilder = new int[3][3];
         for (int i = 0; i < 3; i++) {
             for (int j = 0; j < 3; j++) {
                 if (state.charAt(i + j) == 'b') {
-                    currentState[i][j] = 0;
-                    currentBlanki = i;
-                    currentBlankj = j;
+                    stateBuilder[i][j] = 0;
+                    currentState.setBlanki(i);
+                    currentState.setBlankj(j);
                 }
                 else
-                    currentState[i][j] = stateIterator.next() - '0';
+                    stateBuilder[i][j] = stateIterator.next() - '0';
             }
         }
+        currentState.setRepresentation(stateBuilder);
     }
 
-    public void move(String direction) {
+    private int getHeuristic(String heuristicType, State state) {
+        if (heuristicType.equals("H1"))
+            return getH1Heuristic(state);
+        else if (heuristicType.equals("H2"))
+            return getH2Heuristic(state);
+        else throw new IllegalArgumentException("only H1 and H2 heuristic types are supported");
+    }
+
+    public State move(String direction, State state) {
         switch (direction) {
             case ("up"):
-                moveUp();
-                break;
+                return moveUp(state);
             case ("down"):
-                moveDown();
-                break;
+                return moveDown(state);
             case ("left"):
-                moveLeft();
-                break;
+                return moveLeft(state);
             case ("right"):
-                moveRight();
-                break;
+                return moveRight(state);
+            case ("none"):
+                return state;
             default: throw new IllegalArgumentException("the given direction does not match " +
                     "'up', 'down', 'left', or 'right");
         }
     }
 
     public void printState() {
-        System.out.println("Current state of the puzzle is: \n" + Arrays.deepToString(currentState));
+        printState(currentState);
+    }
+    public void printState(State state) {
+        System.out.println(Arrays.deepToString(state.getRepresentation()));
     }
 
-    public void randomizeState(int numberOfMoves) {
+    public void randomizeState(int numberOfMoves, State state) {
         while (numberOfMoves > 0) {
-            makeRandomMove();
+            makeRandomMove(state);
             numberOfMoves--;
-            printState();
         }
     }
 
     public void solveAStar(String heuristicType) {
-        switch (heuristicType) {
-            case ("H1Heuristic"):
-                getH1Heuristic();
+        PriorityQueue<Node> priorityQueue = new PriorityQueue<>();
+        Stack<Node> stack = new Stack<>();
+
+        Node currentNode = new Node(currentState, null, "none", 0);
+        currentNode.setHeuristicCost(getHeuristic(heuristicType, currentState));
+        priorityQueue.add(currentNode);
+
+        int iterations = 1;
+        while (!Arrays.deepEquals(currentState.getRepresentation(), GOAL_STATE)) {
+
+            currentNode = priorityQueue.poll();
+            currentState = currentNode.getState();
+            iterations++;
+
+            Node up = exploreCurrentNode(currentNode, "up", heuristicType);
+            Node down = exploreCurrentNode(currentNode, "down", heuristicType);
+            Node left = exploreCurrentNode(currentNode, "left", heuristicType);
+            Node right = exploreCurrentNode(currentNode, "right", heuristicType);
+
+
+            for (Node node : (new ArrayList<Node>(Arrays.asList(up, down, left, right)))) {
+                if (!Arrays.deepEquals(currentNode.getState().getRepresentation(),
+                            node.getState().getRepresentation())) {
+                    priorityQueue.add(node);
+                }
+            }
+
+        }
+        displayResults(currentNode, stack, iterations);
+    }
+
+    private void displayResults (Node currentNode, Stack<Node> stack, int iterations) {
+        Node stackNode = currentNode;
+        ArrayList movePrinter = new ArrayList();
+        while (stackNode.getPreviousNode() != null) {
+            stack.add(stackNode);
+            stackNode = stackNode.getPreviousNode();
         }
 
+        while (!stack.isEmpty()) {
+            stackNode = stack.pop();
+            movePrinter.add(stackNode.getMoveDirection());
+            System.out.println("Move " + stackNode.getMoveDirection());
+            printState(stackNode.getState());
+        }
+
+        System.out.println("Number of moves to solution: " + currentNode.getTotalPathCost());
+        System.out.println("Number of nodes considered: " + iterations);
+        System.out.println(movePrinter.toString());
+    }
+
+    private State copyState (State state) {
+        int[][] newRep = new int[3][3];
+
+        for (int i = 0; i < 3; i++) {
+            for (int j = 0; j < 3; j++) {
+                newRep[i][j] = state.getRepresentation()[i][j];
+            }
+        }
+        State newState = new State(newRep);
+        newState.setBlanki(state.getBlanki());
+        newState.setBlankj(state.getBlankj());
+        return newState;
+    }
+
+    private Node exploreCurrentNode(Node currentNode, String direction, String heuristicType) {
+        State newState = move(direction, copyState(currentNode.getState()));
+        Node newNode = new Node(newState, currentNode,
+                direction, currentNode.getTotalPathCost() + 1);
+        newNode.setHeuristicCost(getHeuristic(heuristicType, newState));
+        return newNode;
     }
 
     //////////////////
     /*Helper Methods*/
     //////////////////
-    private int getH1Heuristic() {
+    private int getH1Heuristic(State state) {
         int tilesOffGoal = 0;
 
         for (int i = 0; i < 3; i++) {
             for (int j = 0; j < 3; j++) {
-                if (currentState[i][j] != GOAL_STATE[i][j])
+                if (state.getRepresentation()[i][j] != GOAL_STATE[i][j])
                     tilesOffGoal++;
             }
         }
@@ -84,46 +158,69 @@ public class PuzzleSolver {
         return tilesOffGoal;
     }
 
-    private void makeRandomMove() {
+    private int getH2Heuristic(State state) {
+        int movesAwaySum = 0;
+        int valueOfTile, goali, goalj;
+
+        for (int i = 0; i < 3; i++) {
+            for(int j = 0; j < 3; j++) {
+                valueOfTile = state.getRepresentation()[i][j];
+                goali = valueOfTile / 3;
+                goalj = valueOfTile % 3;
+                movesAwaySum+=(Math.abs(goali - i + goalj - j));
+            }
+        }
+        return movesAwaySum;
+    }
+
+    private State makeRandomMove(State state) {
         Double moveType = Math.ceil(Math.random() * 4);
 
-        System.out.println(moveType);
         if (moveType == 1)
-            move("up");
+            return move("up", state);
         else  if (moveType == 2)
-            move("down");
+            return move("down", state);
         else if (moveType == 3)
-            move("left");
+            return move("left", state);
         else
-            move("right");
+            return  move("right", state);
     }
 
-    private void moveUp() {
-        if (currentBlanki != 0)
-            switchTiles(currentBlanki, currentBlankj, currentBlanki-1, currentBlankj);
+    private State moveUp(State state) {
+        if (state.getBlanki() != 0)
+            return switchTiles(state, state.getBlanki(), state.getBlankj(),
+                    state.getBlanki()-1, state.getBlankj());
+        else return state;
     }
 
-    private void moveDown() {
-        if (currentBlanki != 2)
-            switchTiles(currentBlanki, currentBlankj, currentBlanki+1, currentBlankj);
+    private State moveDown(State state) {
+        if (state.getBlanki() != 2)
+            return switchTiles(state, state.getBlanki(), state.getBlankj(),
+                    state.getBlanki()+1, state.getBlankj());
+        else return state;
     }
 
-    private void moveLeft() {
-        if (currentBlankj != 0)
-            switchTiles(currentBlanki, currentBlankj, currentBlanki, currentBlankj-1);
+    private State moveLeft(State state) {
+        if (state.getBlankj() != 0)
+            return  switchTiles(state, state.getBlanki(), state.getBlankj(), state.getBlanki(),
+                    state.getBlankj()-1);
+        else return state;
     }
 
-    private void moveRight() {
-        if (currentBlankj != 2)
-            switchTiles(currentBlanki, currentBlankj, currentBlanki, currentBlankj+1);
+    private State moveRight(State state) {
+        if (state.getBlankj() != 2)
+            return switchTiles(state, state.getBlanki(), state.getBlankj(), state.getBlanki(),
+                    state.getBlankj()+1);
+        else return state;
     }
 
-    private void switchTiles(int old_i, int old_j, int new_i, int new_j) {
-        int tempHolder = currentState[old_i][old_j];
-        currentState[old_i][old_j] = currentState[new_i][new_j];
-        currentState[new_i][new_j] = tempHolder;
-        currentBlanki = new_i;
-        currentBlankj = new_j;
+    private State switchTiles(State state, int old_i, int old_j, int new_i, int new_j) {
+        int tempHolder = state.getRepresentation()[old_i][old_j];
+        state.getRepresentation()[old_i][old_j] = state.getRepresentation()[new_i][new_j];
+        state.getRepresentation()[new_i][new_j] = tempHolder;
+        state.setBlanki(new_i);
+        state.setBlankj(new_j);
+        return state;
     }
 
     private void validateInputState(String state) {
@@ -143,11 +240,22 @@ public class PuzzleSolver {
     }
 
     // Main Method
-
     public static void main(String[] args) {
         PuzzleSolver puzzleSolver = new PuzzleSolver();
-        puzzleSolver.setState("b12 354 678");
-        System.out.print(puzzleSolver.getH1Heuristic());
+        puzzleSolver.setState("b12 345 678");
+        System.out.println("Start: ");
+        puzzleSolver.randomizeState(10, puzzleSolver.currentState);
+        puzzleSolver.printState();
+        puzzleSolver.solveAStar("H1");
+        System.out.println("");
+
+        puzzleSolver = new PuzzleSolver();
+        puzzleSolver.setState("b12 345 678");
+        System.out.println("Start: ");
+        puzzleSolver.randomizeState(10, puzzleSolver.currentState);
+        puzzleSolver.printState();
+        puzzleSolver.solveAStar("H2");
+
     }
 }
 
