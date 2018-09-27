@@ -1,5 +1,8 @@
 
 import javax.lang.model.element.Element;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.text.StringCharacterIterator;
 import java.util.*;
 
@@ -7,6 +10,7 @@ public class PuzzleSolver {
 
     public static final int GOAL_STATE[][] = {{0, 1, 2}, {3, 4, 5}, {6, 7, 8}};
     private State currentState = new State(new int[0][0]);
+    private int maxNodes = 1000000;
 
     public void setState(String inputState) {
         Objects.requireNonNull(inputState);
@@ -29,12 +33,8 @@ public class PuzzleSolver {
         currentState.setRepresentation(stateBuilder);
     }
 
-    private int getHeuristic(String heuristicType, State state) {
-        if (heuristicType.equals("H1"))
-            return getH1Heuristic(state);
-        else if (heuristicType.equals("H2"))
-            return getH2Heuristic(state);
-        else throw new IllegalArgumentException("only H1 and H2 heuristic types are supported");
+    public void maxNodes(int maxNodes) {
+        this.maxNodes = maxNodes;
     }
 
     public State move(String direction, State state) {
@@ -57,6 +57,7 @@ public class PuzzleSolver {
     public void printState() {
         printState(currentState);
     }
+
     public void printState(State state) {
         System.out.println(Arrays.deepToString(state.getRepresentation()));
     }
@@ -120,20 +121,6 @@ public class PuzzleSolver {
         System.out.println(movePrinter.toString());
     }
 
-    private State copyState (State state) {
-        int[][] newRep = new int[3][3];
-
-        for (int i = 0; i < 3; i++) {
-            for (int j = 0; j < 3; j++) {
-                newRep[i][j] = state.getRepresentation()[i][j];
-            }
-        }
-        State newState = new State(newRep);
-        newState.setBlanki(state.getBlanki());
-        newState.setBlankj(state.getBlankj());
-        return newState;
-    }
-
     private Node exploreCurrentNode(Node currentNode, String direction, String heuristicType) {
         State newState = move(direction, copyState(currentNode.getState()));
         Node newNode = new Node(newState, currentNode,
@@ -145,6 +132,16 @@ public class PuzzleSolver {
     //////////////////
     /*Helper Methods*/
     //////////////////
+    private int getHeuristic(String heuristicType, State state) {
+        if (heuristicType.equals("H1"))
+            return getH1Heuristic(state);
+
+        else if (heuristicType.equals("H2"))
+            return getH2Heuristic(state);
+
+        else throw new IllegalArgumentException("only H1 and H2 heuristic types are supported");
+    }
+
     private int getH1Heuristic(State state) {
         int tilesOffGoal = 0;
 
@@ -171,6 +168,20 @@ public class PuzzleSolver {
             }
         }
         return movesAwaySum;
+    }
+
+    private State copyState (State state) {
+        int[][] newRep = new int[3][3];
+
+        for (int i = 0; i < 3; i++) {
+            for (int j = 0; j < 3; j++) {
+                newRep[i][j] = state.getRepresentation()[i][j];
+            }
+        }
+        State newState = new State(newRep);
+        newState.setBlanki(state.getBlanki());
+        newState.setBlankj(state.getBlankj());
+        return newState;
     }
 
     private State makeRandomMove(State state) {
@@ -239,22 +250,65 @@ public class PuzzleSolver {
         return true;
     }
 
-    // Main Method
-    public static void main(String[] args) {
-        PuzzleSolver puzzleSolver = new PuzzleSolver();
-        puzzleSolver.setState("b12 345 678");
-        System.out.println("Start: ");
-        puzzleSolver.randomizeState(10, puzzleSolver.currentState);
-        puzzleSolver.printState();
-        puzzleSolver.solveAStar("H1");
-        System.out.println("");
+    private void checkMaxNodes(int iterator) {
+        if (iterator > maxNodes)
+            throw new UnsupportedOperationException("The number of nodes has exceeded " +
+                    "the maximum allowable number of nodes");
+    }
 
-        puzzleSolver = new PuzzleSolver();
-        puzzleSolver.setState("b12 345 678");
-        System.out.println("Start: ");
-        puzzleSolver.randomizeState(10, puzzleSolver.currentState);
-        puzzleSolver.printState();
-        puzzleSolver.solveAStar("H2");
+    // Main Method
+    public static void main(String[] args) throws IOException {
+        PuzzleSolver puzzleSolver = new PuzzleSolver();
+
+        try {
+            FileInputStream testFile = new FileInputStream("test.txt");
+
+            Scanner fileScanner = new Scanner(testFile);
+
+            while (fileScanner.hasNextLine()) {
+                String currentLine = fileScanner.nextLine();
+                System.out.println(currentLine);
+                String[] commands = currentLine.split(" ");
+
+                switch (commands[0]) {
+                    case ("setState"):
+                        puzzleSolver.setState(commands[1] + " " + commands[2] + " " + commands[3]);
+                    case ("randomizeState"):
+                        4puzzleSolver.randomizeState(Integer.parseInt(commands[1]), puzzleSolver.currentState);
+                    case ("printState"):
+                        puzzleSolver.printState();
+                    case ("move"):
+                        puzzleSolver.move(commands[1], puzzleSolver.currentState);
+                    case ("solve"):
+                        if (commands[1].equals("A-star"))
+                            puzzleSolver.solveAStar(commands[2]);
+                        else if (commands[1].equals("beam")) {
+                            //solve k beam;
+                        }
+                    case ("maxNodes"):
+                        puzzleSolver.maxNodes(Integer.parseInt(commands[1]));
+                }
+            }
+
+        } catch (IOException ioe) {
+            System.out.println("Could not read file test.txt");
+        }
+    }
+
+//        PuzzleSolver puzzleSolver = new PuzzleSolver();
+//        puzzleSolver.setState("b12 345 678");
+//        System.out.println("Start: ");
+//        puzzleSolver.randomizeState(10, puzzleSolver.currentState);
+//        puzzleSolver.printState();
+//        puzzleSolver.solveAStar("H1");
+//        System.out.println("");
+//
+//        puzzleSolver = new PuzzleSolver();
+//        puzzleSolver.setState("b12 345 678");
+//        System.out.println("Start: ");
+//        puzzleSolver.randomizeState(10, puzzleSolver.currentState);
+//        puzzleSolver.printState();
+//        puzzleSolver.solveAStar("H2");
 
     }
 }
