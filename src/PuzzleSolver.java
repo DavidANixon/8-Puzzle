@@ -14,7 +14,7 @@ public class PuzzleSolver {
 
     public void setState(String inputState) {
         Objects.requireNonNull(inputState);
-        String state = inputState.replaceAll("\\s+","");
+        String state = inputState.replaceAll("\\s+", "");
         validateInputState(state);
         StringCharacterIterator stateIterator = new StringCharacterIterator(state);
 
@@ -25,8 +25,7 @@ public class PuzzleSolver {
                     stateBuilder[i][j] = 0;
                     currentState.setBlanki(i);
                     currentState.setBlankj(j);
-                }
-                else
+                } else
                     stateBuilder[i][j] = stateIterator.next() - '0';
             }
         }
@@ -49,8 +48,9 @@ public class PuzzleSolver {
                 return moveRight(state);
             case ("none"):
                 return state;
-            default: throw new IllegalArgumentException("the given direction does not match " +
-                    "'up', 'down', 'left', or 'right");
+            default:
+                throw new IllegalArgumentException("the given direction does not match " +
+                        "'up', 'down', 'left', or 'right");
         }
     }
 
@@ -92,7 +92,7 @@ public class PuzzleSolver {
 
             for (Node node : (new ArrayList<Node>(Arrays.asList(up, down, left, right)))) {
                 if (!Arrays.deepEquals(currentNode.getState().getRepresentation(),
-                            node.getState().getRepresentation())) {
+                        node.getState().getRepresentation())) {
                     priorityQueue.add(node);
                 }
             }
@@ -101,7 +101,7 @@ public class PuzzleSolver {
         displayResults(currentNode, stack, iterations);
     }
 
-    private void displayResults (Node currentNode, Stack<Node> stack, int iterations) {
+    private void displayResults(Node currentNode, Stack<Node> stack, int iterations) {
         Node stackNode = currentNode;
         ArrayList movePrinter = new ArrayList();
         while (stackNode.getPreviousNode() != null) {
@@ -160,17 +160,17 @@ public class PuzzleSolver {
         int valueOfTile, goali, goalj;
 
         for (int i = 0; i < 3; i++) {
-            for(int j = 0; j < 3; j++) {
+            for (int j = 0; j < 3; j++) {
                 valueOfTile = state.getRepresentation()[i][j];
                 goali = valueOfTile / 3;
                 goalj = valueOfTile % 3;
-                movesAwaySum+=(Math.abs(goali - i + goalj - j));
+                movesAwaySum += (Math.abs(goali - i + goalj - j));
             }
         }
         return movesAwaySum;
     }
 
-    private State copyState (State state) {
+    private State copyState(State state) {
         int[][] newRep = new int[3][3];
 
         for (int i = 0; i < 3; i++) {
@@ -189,39 +189,39 @@ public class PuzzleSolver {
 
         if (moveType == 1)
             return move("up", state);
-        else  if (moveType == 2)
+        else if (moveType == 2)
             return move("down", state);
         else if (moveType == 3)
             return move("left", state);
         else
-            return  move("right", state);
+            return move("right", state);
     }
 
     private State moveUp(State state) {
         if (state.getBlanki() != 0)
             return switchTiles(state, state.getBlanki(), state.getBlankj(),
-                    state.getBlanki()-1, state.getBlankj());
+                    state.getBlanki() - 1, state.getBlankj());
         else return state;
     }
 
     private State moveDown(State state) {
         if (state.getBlanki() != 2)
             return switchTiles(state, state.getBlanki(), state.getBlankj(),
-                    state.getBlanki()+1, state.getBlankj());
+                    state.getBlanki() + 1, state.getBlankj());
         else return state;
     }
 
     private State moveLeft(State state) {
         if (state.getBlankj() != 0)
-            return  switchTiles(state, state.getBlanki(), state.getBlankj(), state.getBlanki(),
-                    state.getBlankj()-1);
+            return switchTiles(state, state.getBlanki(), state.getBlankj(), state.getBlanki(),
+                    state.getBlankj() - 1);
         else return state;
     }
 
     private State moveRight(State state) {
         if (state.getBlankj() != 2)
             return switchTiles(state, state.getBlanki(), state.getBlankj(), state.getBlanki(),
-                    state.getBlankj()+1);
+                    state.getBlankj() + 1);
         else return state;
     }
 
@@ -243,7 +243,7 @@ public class PuzzleSolver {
     }
 
     private boolean containsAll(String state, String... toVerify) {
-        for (CharSequence tile: toVerify) {
+        for (CharSequence tile : toVerify) {
             if (!state.contains(tile))
                 return false;
         }
@@ -274,7 +274,7 @@ public class PuzzleSolver {
                     case ("setState"):
                         puzzleSolver.setState(commands[1] + " " + commands[2] + " " + commands[3]);
                     case ("randomizeState"):
-                        4puzzleSolver.randomizeState(Integer.parseInt(commands[1]), puzzleSolver.currentState);
+                        puzzleSolver.randomizeState(Integer.parseInt(commands[1]), puzzleSolver.currentState);
                     case ("printState"):
                         puzzleSolver.printState();
                     case ("move"):
@@ -294,6 +294,7 @@ public class PuzzleSolver {
             System.out.println("Could not read file test.txt");
         }
     }
+}
 
 //        PuzzleSolver puzzleSolver = new PuzzleSolver();
 //        puzzleSolver.setState("b12 345 678");
@@ -309,7 +310,4 @@ public class PuzzleSolver {
 //        puzzleSolver.randomizeState(10, puzzleSolver.currentState);
 //        puzzleSolver.printState();
 //        puzzleSolver.solveAStar("H2");
-
-    }
-}
 
