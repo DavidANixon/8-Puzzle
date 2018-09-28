@@ -1,16 +1,16 @@
 public class Node implements Comparable<Node>{
-    private Node previousNode;
+    private Node parentNode;
     private String moveDirection;
     private int totalPathCost;
     private int heuristicCost;
     private State state;
 
-    public Node getPreviousNode() {
-        return previousNode;
+    public Node getParentNode() {
+        return parentNode;
     }
 
-    public void setPreviousNode(Node previousNode) {
-        this.previousNode = previousNode;
+    public void setParentNode(Node previousNode) {
+        this.parentNode = previousNode;
     }
 
     public String getMoveDirection() {
@@ -41,23 +41,23 @@ public class Node implements Comparable<Node>{
         this.state = state;
     }
 
-
     public void setHeuristicCost(int heuristicCost) {
         this.heuristicCost = heuristicCost;
     }
 
-    public Node (State state, Node previousNode, String moveDirection, int totalPathCost) {
+    public Node (State state, Node parentNode, String moveDirection, int totalPathCost) {
         this.state = state;
-        this.previousNode = previousNode;
+        this.parentNode = parentNode;
         this.moveDirection = moveDirection;
         this.totalPathCost = totalPathCost;
     }
 
+    // Tells the priority queue what to base the ranking on
     @Override
     public int compareTo(Node compNode) {
-        if (totalPathCost + heuristicCost > compNode.totalPathCost + compNode.heuristicCost)
+        if ((totalPathCost + heuristicCost) > (compNode.totalPathCost + compNode.heuristicCost))
             return 1;
         else
-            return 0;
+            return -1;
     }
 }
